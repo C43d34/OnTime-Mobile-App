@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "895671565570",
+    "firebase_url": "https://ontimemobapp-default-rtdb.firebaseio.com",
+    "project_id": "ontimemobapp",
+    "storage_bucket": "ontimemobapp.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:895671565570:android:2a3f3b9928371dc8e9d61b",
+        "android_client_info": {
+          "package_name": "com.example.untitled"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "895671565570-bcitmspp7i4urfktf897p3s80hu28faj.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAqK3hq6qAv4UcEkvYYUstEy1nThcaMzmQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "895671565570-bcitmspp7i4urfktf897p3s80hu28faj.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "895671565570-46lcvrss6shqr2obgbgk8ngh7sts85kl.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.untitled"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

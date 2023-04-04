@@ -1,15 +1,27 @@
-import 'dart:math';
 
+import 'dart:convert';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'package:flutter/material.dart';
 import 'package:untitled/CPPMain.dart';
 import 'package:untitled/CommutingDetails.dart';
+import 'package:untitled/TimeFunctions.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:untitled/GoogleMapsFunctionality.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
+
 
   // This widget is the root of your application.
   @override
@@ -27,6 +39,7 @@ class MyApp extends StatelessWidget {
         // Notice that the counter didn't reset back to zero; the application
         // is not restarted.
         primarySwatch: Colors.brown,
+        scaffoldBackgroundColor: Colors.white54
       ),
       home: const MyHomePage(title: 'Flutter Demo Home Page'),
     );
@@ -53,76 +66,91 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
+  var commute_entries = [];
+  var saved_commute_ids = [
+    {
+      "id" : "0DRpxhntwQca4IWLYQTo"
+    },
+    {
+      "id" : "0pubLLJ7y6Ek1oco2ylO"
+    },
+    {
+      "id" : "AACVFVOcPc3JbhSkOEM0"
+    },
+    {
+      "id" : "RNtDKzgPepLaV5PolNBG"
+    },
+    {
+      "id" : "vXrUbN3WPGTX3C5EDQRv"
+    }
+  ];
 
-  void _incrementCounter() {
+
+  //make an async call to database to retrieve commutes (ALL of them at once)
+  Future retrieve_commutes(Map<String, String> doc_id_map) async {
+    Map<String, dynamic>? data;
+    //for now the entries are unordered, because we are calling them one at a time instead of all together
+    //we can order them by calling as a group
+    //But all the documents need to be grouped inside a *unique* collection specific to this device/user
+      //unsure if we want users still though. Maybe just have a collection key that users can copy and share across devices
+    var document = await FirebaseFirestore.instance.collection("commutes").doc(doc_id_map["id"]).get();
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      data = doc_id_map;
+      data!["data"] = json.encode(document.data());
+      commute_entries.add(data);
     });
   }
 
+  @override
+  void didChangeDependencies() //unwraps the future return from retrieve_commutes for us
+  {
+    super.didChangeDependencies();
+    for (var doc_ID in saved_commute_ids){
+      retrieve_commutes(doc_ID!);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final double Device_Height = MediaQuery.of(context).size.height;
     final double Device_Width = MediaQuery.of(context).size.width;
 
-    var commute_entries = [
-      {
-        "ID" : 1,
-        "title" : "CS4700 Commute",
-        "arrival_time" : "10:30AM",
-        "departure_time" : "10:00AM",
-        "destination" : "CS4700 B8 RM302",
-        "avg_drive_time" : 20,
-        "avg_walk_time" : 15,
-        "entry_color" : Colors.amber[600]
-      },
-      {
-        "ID" : 2,
-        "title" : "CS4200 Commute",
-        "arrival_time" : "10:30AM",
-        "departure_time" : "10:00AM",
-        "destination" : "CS4200 B6 RM1005",
-        "avg_drive_time" : 20,
-        "avg_walk_time" : 15,
-        "entry_color" : Colors.amber[500]
-      },
-      {
-        "ID" : 3,
-        "title" : "CS3650 Commute",
-        "arrival_time" : "10:30AM",
-        "departure_time" : "10:00AM",
-        "destination" : "CS3650 B8 RM104",
-        "avg_drive_time" : 0,
-        "avg_walk_time" : 15,
-        "entry_color" : Colors.amber[300]
-      },
-      {
-        "ID" : 4,
-        "title" : "EC4100 Commute",
-        "arrival_time" : "10:30AM",
-        "departure_time" : "10:00AM",
-        "destination" : "CS4700",
-        "avg_drive_time" : 20,
-        "avg_walk_time" : 15,
-        "entry_color" : Colors.amber[100]
-      },
-      {
-        "ID" : 5,
-        "title" : "MAT1220 Commute",
-        "arrival_time" : "10:30AM",
-        "departure_time" : "10:00AM",
-        "destination" : "CS4700",
-        "avg_drive_time" : 20,
-        "avg_walk_time" : 15,
-        "entry_color" : Colors.amber[100]
-      }
-    ];
+    // for (int i=0; i < commute_entries.length; i++)
+    //   {
+    //     FirebaseFirestore.instance.collection("commutes").add(
+    //       commute_entries[i]
+    //     ).then((value) {
+    //       print("Successfully added new entry ${i}");
+    //     }).catchError((error)
+    //     {
+    //       print("Unsucessful in adding entry ${i}");
+    //       print(error);
+    //     });
+    //   }
+
+//         FirebaseFirestore.instance.collection("commutes").get(
+//               ).then((data) {
+//                 for (var value in data.docs) {
+//                   print(value.id); //these are the document ids that are randomly generated
+// //SAVE THESE IDS LOCALLY TO DEVICE SO WE KNOW WHICH COMMUTES BELONG TO WHO (we don't care about user authentication tbh)
+//                 }
+//               }).catchError((error)
+//               {
+//                 print(error);
+//               });
+//     var commute_entries = [];
+//     for (var docID in saved_commute_ids)
+//     {
+//       FirebaseFirestore.instance.collection("commutes").doc(docID["id"]).get(
+//       ).then((doc_snapshot){
+//         commute_entries.add(doc_snapshot.data() as Map<String, dynamic>); //add each entry of the document such that string : any
+//
+//       }).catchError((error){
+//         print("Error retrieving list of commutes on this device");
+//         print(error);
+//       });
+//     }
+
     return Scaffold(
       appBar: AppBar(
         // Here we take the value from the MyHomePage object that was created by
@@ -140,75 +168,90 @@ class _MyHomePageState extends State<MyHomePage> {
               padding: EdgeInsets.symmetric(horizontal: Device_Width*0.05),
               itemCount: commute_entries.length,
               itemBuilder: (BuildContext context, int index) {
-                return Container(
-                  height: Device_Height * 0.15,
-                  color: commute_entries[index]["entry_color"] as Color, //as "Object_type" op tech
-                  child: InkWell(
-                    onTap: () {Navigator.push(context, MaterialPageRoute(builder: (context) =>
-                        CommutingDetails(entry_data : commute_entries[index])));
-                    },
-                    child: Column(
-                        children: [
-                          Text(
-                              "${commute_entries[index]["title"]}",
-                              style: Theme.of(context).textTheme.headlineMedium
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.all(2.0),
-                            child: Text(
-                                "Arriving @ " + "${commute_entries[index]["arrival_time"]}",
-                              style: Theme.of(context).textTheme.titleLarge
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.all(2.0),
-                            child: Text(
-                                "Latest Departure @: " + "${commute_entries[index]["departure_time"]}",
-                                style: Theme.of(context).textTheme.titleLarge
-                            ),
-                          ),
-                          Row(
-                            children: [
-                              Expanded(
-                                flex: 20,
-                                child: Column(
-                                  children: [
-                                    Text("Going to: "),
-                                    Text("${commute_entries[index]["destination"]}"),
-                                  ],
-                                ),
+                  return Container(
+                    color: Color(getCommuteData(index, "entry_color") as int), //as "Object_type" op tech
+                    child: InkWell(
+                      onTap: () {Navigator.push(context, MaterialPageRoute(builder: (context) =>
+                          CommutingDetails(entry_data : json.decode(commute_entries[index]["data"]), entry_id : commute_entries[index]["id"])))
+                          .then((amended_values) {
+                            //when we return from this page, update the local commute data (assuming something changed)
+                              //better to do this than to make another call to database
+                            commute_entries[index]["data"] = json.encode(amended_values);
+                            setState(() {
+                            });
+                          });
+                      },
+                      child: Column(
+                          children: [
+                            FittedBox(
+                              fit: BoxFit.fitWidth,
+                              child: Text(
+                                  "${getCommuteData(index, "title")}",
+                                  style: Theme.of(context).textTheme.headlineMedium
                               ),
-                              Expanded(
-                                flex: 20,
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(2.0),
+                              child: Text(
+                                  "Arriving @ "
+                                      + "${calcHour(getCommuteData(index, "arrival_time"))}:"
+                                      + "${calcMin(getCommuteData(index, "arrival_time"))}"
+                                      + "${resolveAMPM(getCommuteData(index, "AM_true"))}",
+                                  style: Theme.of(context).textTheme.titleLarge
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(2.0),
+                              child: Text(
+                                  "Latest Departure @: "
+                                      + "${calcHour(getCommuteData(index, "departure_time"))}:"
+                                      + "${calcMin(getCommuteData(index, "departure_time"))}"
+                                      + "${resolveAMPM(getCommuteData(index, "departure_AM_true"))}",
+                                  style: Theme.of(context).textTheme.titleLarge
+                              ),
+                            ),
+                            Row(
+                              children: [
+                                Expanded(
+                                  flex: 20,
+                                  child: Column(
+                                    children: [
+                                      Text("Going to: "),
+                                      Text("${getCommuteData(index, "destination")}"),
+                                    ],
+                                  ),
+                                ),
+                                Expanded(
+                                  flex: 20,
                                   child: Row(
                                     children: [
-                                      if (commute_entries[index]["avg_walk_time"] != 0)
+                                      if (getCommuteData(index, "avg_walk_time") != 0)
                                         Icon(
                                           Icons.directions_walk,
                                           color: Colors.green,
                                           size: 30.0,
                                         ),
-                                      if (commute_entries[index]["avg_drive_time"] != 0)
+                                      if (getCommuteData(index, "avg_drive_time") != 0)
                                         Icon(
                                           Icons.directions_bike,
                                           color: Colors.black,
                                           size: 30.0,
                                         ),
-                                      if (commute_entries[index]["avg_drive_time"] != 0)
+                                      if (getCommuteData(index, "avg_drive_time") != 0)
                                         Icon(
                                           Icons.drive_eta,
                                           color: Colors.blue,
                                           size: 30.0,
                                         ),
                                     ],
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ]
+                              ],
+                            ),
+                          ]
+                      ),
                     ),
-                  ),
-                );
+                  );
               },
               separatorBuilder: (BuildContext context, int index) => const Divider(),
           ),
@@ -218,7 +261,7 @@ class _MyHomePageState extends State<MyHomePage> {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const CPPMain()),
+            MaterialPageRoute(builder: (context) => const MapSample()),
           );
         },
         tooltip: 'Increment',
@@ -226,4 +269,9 @@ class _MyHomePageState extends State<MyHomePage> {
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
+
+  dynamic getCommuteData(int list_indx, String data_key) {
+    return json.decode(commute_entries[list_indx]["data"])[data_key];
+  }
+
 }
