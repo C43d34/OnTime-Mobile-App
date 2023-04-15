@@ -37,7 +37,9 @@ dependencies:
   cupertino_icons: ^1.0.2
   firebase_core: ^2.8.0
   cloud_firestore: ^4.4.5
+  geolocator: ^9.0.2
   google_maps_flutter: ^2.2.5
+  localstorage: ^4.0.1+2
 
 
 dev_dependencies:

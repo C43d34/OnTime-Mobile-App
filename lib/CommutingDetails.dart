@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:untitled/TimeFunctions.dart';
+import 'dart:async';
 
 class CommutingDetails extends StatefulWidget {
   final entry_data;
@@ -23,6 +25,7 @@ class _CommutingDetailsState extends State<CommutingDetails> {
   String arrival_hr = "1";
   String arrival_min = "1";
   String arrival_ampm = "AM";
+
 
   @override
   void initState(){
@@ -54,158 +57,249 @@ class _CommutingDetailsState extends State<CommutingDetails> {
         return true;
       },
       child: Scaffold(
+        resizeToAvoidBottomInset: false,
         appBar: AppBar(
           title: TextFormField(
             initialValue: "${widget.entry_data["title"]}",
             style: TextStyle(color: Colors.white, fontSize: 25),
           ),
         ),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              Expanded(
-                flex: 40,
-                child: Image.network("https://www.cpp.edu/career/img/building-97.jpg")),
-              Expanded(
-                flex: 60,
-                child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 10, horizontal: Device_Width*0.05),
-                  child: Column(
-                    children: [
-                      Expanded(
-                        flex: 45,
-                        child: Column(
-                          children: [
-                            Text("Desired Arrival",
-                              style: TextStyle(fontSize: 30, color: Colors.white70),
-                            ),
-          //Desired arrival timer display widget
-                            Container(
-                              width: 0.5 * Device_Width,
-                              decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.white),
-                                  borderRadius: BorderRadius.all(
-                                      Radius.circular(10)
-                                  )
-                              ),
-                              child: Row(
-                                children: [
-                                  //Hours
-                                  Expanded(
-                                    flex: 45,
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                                      child: DropdownButton<String>(
-                                        value: arrival_hr,
-                                        icon: const Icon(null),
-                                        iconSize: 0.0,
-                                        style: const TextStyle(color: Colors.deepPurple), //doesnt do anything right now
-                                        menuMaxHeight: 0.3 * Device_Height,
-                                        selectedItemBuilder: (BuildContext context) {
-                                          return hr.map<Widget>((String hour) {
-                                            return Container(
-                                                alignment: Alignment.centerRight,
-                                                width: 0.07 * Device_Width,
-                                                child: Text(hour.toString(),
-                                                    textAlign: TextAlign.end,
-                                                    style: Theme.of(context).textTheme.headlineSmall)
+        body: Container(
+          color: Colors.black, //Make base black so that weird transparency glitch from GoogleMaps doesn't happen
+                                  //Add subsequent background color ontop of this base color (see below container)
+          child: Center(
+            child: Container(
+              color: Colors.white54,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+              //GoogleMAP widget (show commute route)
+                  Expanded(
+                    flex: 38,
+                    child: Container(
+                      width: Device_Width*0.9,
+                      child: GoogleMap(
+                        mapToolbarEnabled: false,
+                        liteModeEnabled: true,
+                        mapType: MapType.normal,
+                        initialCameraPosition: CameraPosition(
+                          target: LatLng(37.4219983, -122.084),
+                          zoom: 10,
+                        ),
+                        markers: {
+                          Marker(
+                            markerId: MarkerId("Source"),
+                            position: LatLng(37.4219983, -122.084),
+                          ),
+                          Marker(
+                            markerId: MarkerId("Destination"),
+                            position: LatLng(30.12121, 52.12),
+                          )
+                        }
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 58,
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 6, horizontal: Device_Width*0.05),
+                      child: Column(
+                        children: [
+                          Expanded(
+                            flex: 40,
+                            child: Column(
+                              children: [
+                                Text("Desired Arrival",
+                                  style: TextStyle(fontSize: 30, color: Colors.white70),
+                                ),
+              //Desired arrival timer display widget
+                                Container(
+                                  width: 0.5 * Device_Width,
+                                  decoration: BoxDecoration(
+                                      border: Border.all(color: Colors.white),
+                                      borderRadius: BorderRadius.all(
+                                          Radius.circular(10)
+                                      )
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      //Hours
+                                      Expanded(
+                                        flex: 45,
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                                          child: DropdownButton<String>(
+                                            value: arrival_hr,
+                                            icon: const Icon(null),
+                                            iconSize: 0.0,
+                                            style: const TextStyle(color: Colors.deepPurple), //doesnt do anything right now
+                                            menuMaxHeight: 0.3 * Device_Height,
+                                            selectedItemBuilder: (BuildContext context) {
+                                              return hr.map<Widget>((String hour) {
+                                                return Container(
+                                                    alignment: Alignment.centerRight,
+                                                    width: 0.07 * Device_Width,
+                                                    child: Text(hour.toString(),
+                                                        textAlign: TextAlign.end,
+                                                        style: Theme.of(context).textTheme.headlineSmall)
+                                                );
+                                              }).toList();
+                                            },
+                                            items: hr.map<DropdownMenuItem<String>>((String value) {
+                                              return DropdownMenuItem<String>(value: value,
+                                                  child: Align(
+                                                    alignment: Alignment.center,
+                                                    child: Text(
+                                                      value,
+                                                      style: Theme.of(context).textTheme.headlineSmall,
+                                                    ),
+                                                  )
+                                              );
+                                            }).toList(),
+                                            onChanged: (String? value) {
+                                              setState(() {
+                                                arrival_hr = value!;
+                                                timeUpdate();
+                                              });
+                                            },
+                                          ),
+                                        ),
+                                      ),
+                                      Expanded(flex: 10, child: Text(":", style: Theme.of(context).textTheme.headlineSmall)),
+                                      //Minutes
+                                      Expanded(
+                                        flex: 45,
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                                          child: DropdownButton<String>(
+                                            value: arrival_min,
+                                            icon: const Icon(null),
+                                            iconSize: 0.0,
+                                            style: const TextStyle(color: Colors.deepPurple), //doesnt do anything right now
+                                            menuMaxHeight: 0.3 * Device_Height,
+                                            items: min.map<DropdownMenuItem<String>>((String value) {
+                                              return DropdownMenuItem<String>(value: value,
+                                                  child: Align(
+                                                    alignment: Alignment.center,
+                                                    child: Text(
+                                                      value,
+                                                      style: Theme.of(context).textTheme.headlineSmall,
+                                                    ),
+                                                  )
+                                              );
+                                            }).toList(),
+                                            onChanged: (String? value) {
+                                              setState(() {
+                                                arrival_min = value!;
+                                                timeUpdate();
+                                              });
+                                            },
+                                          ),
+                                        ),
+                                      ),
+                                      //AM or PM
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                                        child: DropdownButton<String>(
+                                          value: arrival_ampm,
+                                          icon: const Icon(null),
+                                          iconSize: 0.0,
+                                          style: const TextStyle(color: Colors.deepPurple),  //doesnt do anything right now
+                                          menuMaxHeight: 0.3 * Device_Height,
+                                          items: ampm.map<DropdownMenuItem<String>>((String value) {
+                                            return DropdownMenuItem<String>(value: value,
+                                                child: Align(
+                                                  alignment: Alignment.centerLeft,
+                                                  child: Text(
+                                                    value,
+                                                    style: Theme.of(context).textTheme.headlineSmall,
+                                                  ),
+                                                )
                                             );
-                                          }).toList();
-                                        },
-                                        items: hr.map<DropdownMenuItem<String>>((String value) {
-                                          return DropdownMenuItem<String>(value: value,
-                                              child: Align(
-                                                alignment: Alignment.center,
-                                                child: Text(
-                                                  value,
-                                                  style: Theme.of(context).textTheme.headlineSmall,
-                                                ),
-                                              )
-                                          );
-                                        }).toList(),
-                                        onChanged: (String? value) {
-                                          setState(() {
-                                            arrival_hr = value!;
-                                            timeUpdate();
-                                          });
-                                        },
+                                          }).toList(),
+                                          onChanged: (String? value) {
+                                            setState(() {
+                                              arrival_ampm = value!;
+                                              timeUpdate();
+                                            });
+                                          },
+                                        ),
                                       ),
-                                    ),
+                                    ],
                                   ),
-                                  Expanded(flex: 10, child: Text(":", style: Theme.of(context).textTheme.headlineSmall)),
-                                  //Minutes
-                                  Expanded(
-                                    flex: 45,
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                                      child: DropdownButton<String>(
-                                        value: arrival_min,
-                                        icon: const Icon(null),
-                                        iconSize: 0.0,
-                                        style: const TextStyle(color: Colors.deepPurple), //doesnt do anything right now
-                                        menuMaxHeight: 0.3 * Device_Height,
-                                        items: min.map<DropdownMenuItem<String>>((String value) {
-                                          return DropdownMenuItem<String>(value: value,
-                                              child: Align(
-                                                alignment: Alignment.center,
-                                                child: Text(
-                                                  value,
-                                                  style: Theme.of(context).textTheme.headlineSmall,
-                                                ),
-                                              )
-                                          );
-                                        }).toList(),
-                                        onChanged: (String? value) {
-                                          setState(() {
-                                            arrival_min = value!;
-                                            timeUpdate();
-                                          });
-                                        },
-                                      ),
-                                    ),
+                                ),
+              //Projected Departure Text
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 10),
+                                  child: Text("Projected Departured",
+                                    style: TextStyle(fontSize: 30, color: Colors.amber[200]),
                                   ),
-                                  //AM or PM
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                                    child: DropdownButton<String>(
-                                      value: arrival_ampm,
-                                      icon: const Icon(null),
-                                      iconSize: 0.0,
-                                      style: const TextStyle(color: Colors.deepPurple),  //doesnt do anything right now
-                                      menuMaxHeight: 0.3 * Device_Height,
-                                      items: ampm.map<DropdownMenuItem<String>>((String value) {
-                                        return DropdownMenuItem<String>(value: value,
+                                ),
+              //Projected departure display widget
+                                Container(
+                                  width: 0.5 * Device_Width,
+                                  decoration: BoxDecoration(
+                                      border: Border.all(color: Colors.white),
+                                      borderRadius: BorderRadius.all(
+                                          Radius.circular(10)
+                                      )
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 10),
+                                    child: Row(
+                                      children: [
+                                        //Hours
+                                        Expanded(
+                                          flex: 45,
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 16.0),
                                             child: Align(
-                                              alignment: Alignment.centerLeft,
+                                              alignment: Alignment.center,
                                               child: Text(
-                                                value,
+                                                calcHour(widget.entry_data["departure_time"]),
                                                 style: Theme.of(context).textTheme.headlineSmall,
                                               ),
-                                            )
-                                        );
-                                      }).toList(),
-                                      onChanged: (String? value) {
-                                        setState(() {
-                                          arrival_ampm = value!;
-                                          timeUpdate();
-                                        });
-                                      },
+                                            ),
+                                          ),
+                                        ),
+                                        Expanded(flex: 10, child: Text(":", style: Theme.of(context).textTheme.headlineSmall)),
+                                        //Minutes
+                                        Expanded(
+                                          flex: 45,
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                                            child: Text(
+                                              calcMin(widget.entry_data["departure_time"]),
+                                              style: Theme.of(context).textTheme.headlineSmall,
+                                            ),
+                                          ),
+                                        ),
+                                        //AM or PM
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                                          child: Text(
+                                            resolveAMPM(widget.entry_data["departure_AM_true"]),
+                                            style: Theme.of(context).textTheme.headlineSmall,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
-          //Projected Departure Text
-                            Padding(
-                              padding: const EdgeInsets.only(top: 10),
-                              child: Text("Projected Departured",
-                                style: TextStyle(fontSize: 30, color: Colors.amber[200]),
-                              ),
-                            ),
-          //Projected departure display widget
-                            Container(
-                              width: 0.5 * Device_Width,
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 5),
+                            child: Container(
+                              width: Device_Width,
+                              height: 2,
+                              color: Colors.black,),
+                          ),
+              //Commute Statistics box
+                          Expanded(
+                            flex: 35,
+                            child: Container(
                               decoration: BoxDecoration(
                                   border: Border.all(color: Colors.white),
                                   borderRadius: BorderRadius.all(
@@ -213,183 +307,132 @@ class _CommutingDetailsState extends State<CommutingDetails> {
                                   )
                               ),
                               child: Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 10),
-                                child: Row(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Column(
                                   children: [
-                                    //Hours
-                                    Expanded(
-                                      flex: 45,
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                                        child: Align(
-                                          alignment: Alignment.center,
-                                          child: Text(
-                                            calcHour(widget.entry_data["departure_time"]),
-                                            style: Theme.of(context).textTheme.headlineSmall,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    Expanded(flex: 10, child: Text(":", style: Theme.of(context).textTheme.headlineSmall)),
-                                    //Minutes
-                                    Expanded(
-                                      flex: 45,
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                                        child: Text(
-                                          calcMin(widget.entry_data["departure_time"]),
-                                          style: Theme.of(context).textTheme.headlineSmall,
-                                        ),
-                                      ),
-                                    ),
-                                    //AM or PM
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                                    Align(
+                                      alignment: Alignment.center,
                                       child: Text(
-                                        resolveAMPM(widget.entry_data["departure_AM_true"]),
-                                        style: Theme.of(context).textTheme.headlineSmall,
+                                        "Commute Statistics:",
+                                        style: TextStyle(fontSize: 30, color: Colors.white),
+                                      ),
+                                    ),
+                                    // Padding(
+                                    //   padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
+                                    //   child: Row(
+                                    //     children: [
+                                    //       Expanded(
+                                    //         child: Align(
+                                    //           alignment: Alignment.centerLeft,
+                                    //           child: Text(
+                                    //             "ID:",
+                                    //           ),
+                                    //         ),
+                                    //       ),
+                                    //       Expanded(
+                                    //         child: Align(
+                                    //           alignment: Alignment.centerRight,
+                                    //           child: Text(
+                                    //             "${widget.entry_data["ID"]}",
+                                    //           ),
+                                    //         ),
+                                    //       ),
+                                    //     ],
+                                    //   ),
+                                    // ),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2),
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            child: Align(
+                                              alignment: Alignment.centerLeft,
+                                              child: Text(
+                                                "Total Traversal Time: ",
+                                              ),
+                                            ),
+                                          ),
+                                          Expanded(
+                                            child: Align(
+                                              alignment: Alignment.centerRight,
+                                              child: Text(
+                                                "${(widget.entry_data["avg_walk_time"] + widget.entry_data["avg_drive_time"])}",
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2),
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            child: Align(
+                                              alignment: Alignment.centerLeft,
+                                              child: Text(
+                                                "Average Walking Time:",
+                                              ),
+                                            ),
+                                          ),
+                                          Expanded(
+                                            child: Align(
+                                              alignment: Alignment.centerRight,
+                                              child: Text(
+                                                "${widget.entry_data["avg_walk_time"]}",
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2),
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            child: Align(
+                                              alignment: Alignment.centerLeft,
+                                              child: Text(
+                                                "Average Driving Time:",
+                                              ),
+                                            ),
+                                          ),
+                                          Expanded(
+                                            child: Align(
+                                              alignment: Alignment.centerRight,
+                                              child: Text(
+                                                "${widget.entry_data["avg_drive_time"]}",
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        child: Container(
-                          width: Device_Width,
-                          height: 2,
-                          color: Colors.black,),
-                      ),
-          //Commute Statistics box
-                      Expanded(
-                        flex: 45,
-                        child: Container(
-                          decoration: BoxDecoration(
-                              border: Border.all(color: Colors.white),
-                              borderRadius: BorderRadius.all(
-                                  Radius.circular(10)
-                              )
                           ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Column(
-                              children: [
-                                Align(
-                                  alignment: Alignment.center,
-                                  child: Text(
-                                    "Commute Statistics:",
-                                    style: TextStyle(fontSize: 30, color: Colors.white),
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        child: Align(
-                                          alignment: Alignment.centerLeft,
-                                          child: Text(
-                                            "ID:",
-                                          ),
-                                        ),
-                                      ),
-                                      Expanded(
-                                        child: Align(
-                                          alignment: Alignment.centerRight,
-                                          child: Text(
-                                            "${widget.entry_data["ID"]}",
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2),
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        child: Align(
-                                          alignment: Alignment.centerLeft,
-                                          child: Text(
-                                            "Total Traversal Time: ",
-                                          ),
-                                        ),
-                                      ),
-                                      Expanded(
-                                        child: Align(
-                                          alignment: Alignment.centerRight,
-                                          child: Text(
-                                            "${(widget.entry_data["avg_walk_time"] + widget.entry_data["avg_drive_time"])}",
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2),
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        child: Align(
-                                          alignment: Alignment.centerLeft,
-                                          child: Text(
-                                            "Average Walking Time:",
-                                          ),
-                                        ),
-                                      ),
-                                      Expanded(
-                                        child: Align(
-                                          alignment: Alignment.centerRight,
-                                          child: Text(
-                                            "${widget.entry_data["avg_walk_time"]}",
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2),
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        child: Align(
-                                          alignment: Alignment.centerLeft,
-                                          child: Text(
-                                            "Average Driving Time:",
-                                          ),
-                                        ),
-                                      ),
-                                      Expanded(
-                                        child: Align(
-                                          alignment: Alignment.centerRight,
-                                          child: Text(
-                                            "${widget.entry_data["avg_drive_time"]}",
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
-              ),
 
-            ],
+                ],
+              ),
+            ),
           ),
-        ), // This trailing comma makes auto-formatting nicer for build methods.
+        ),
+          floatingActionButton: FloatingActionButton(
+          onPressed: () {
+            setState(() {
+              didChangeDependencies();
+            });
+          },
+          tooltip: 'Increment',
+          child: const Icon(Icons.map),
+        ), // This trailing comma m,// This trailing comma makes auto-formatting nicer for build methods.
       ),
     );
   }

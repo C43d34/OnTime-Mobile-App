@@ -1,22 +1,56 @@
 
+import 'dart:async';
 import 'dart:convert';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:geolocator/geolocator.dart';
 import 'firebase_options.dart';
 import 'package:flutter/material.dart';
 import 'package:untitled/CPPMain.dart';
 import 'package:untitled/CommutingDetails.dart';
 import 'package:untitled/TimeFunctions.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:untitled/GoogleMapsFunctionality.dart';
+import 'package:untitled/LocationFunctionality.dart';
+import 'package:localstorage/localstorage.dart';
+import 'StorageFunctionality.dart';
+
+
+///GLOBAL VARIABLES
+final LocalStorage storage = new LocalStorage('localstorage.json');
+var commute_entries = [];
+  //contains an "id" field mapped to a String
+  //and a "data" field mapped to a json string encoded Commute object (must be decoded)
+List<Map<String, String>> saved_commute_ids = [
+  // {
+  //   "id" : "0DRpxhntwQca4IWLYQTo"
+  // },
+  // {
+  //   "id" : "0pubLLJ7y6Ek1oco2ylO"
+  // },
+  // {
+  //   "id" : "AACVFVOcPc3JbhSkOEM0"
+  // },
+  // {
+  //   "id" : "RNtDKzgPepLaV5PolNBG"
+  // },
+  // {
+  //   "id" : "vXrUbN3WPGTX3C5EDQRv"
+  // }
+];
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  runApp(const MyApp());
+  await storage.ready.then((ready) { //wait for local storage to ready and then grab items before launching app
+    var json_obj_list = storage.getItem("saved_commute_ids");
+    for (var json in json_obj_list){
+      saved_commute_ids.add({"id" : json["id"]}); //structure each entry individually so we can assure correct typing
+    }
+    runApp(const MyApp());
+  });
+
 }
 
 class MyApp extends StatelessWidget {
@@ -66,37 +100,21 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
-  var commute_entries = [];
-  var saved_commute_ids = [
-    {
-      "id" : "0DRpxhntwQca4IWLYQTo"
-    },
-    {
-      "id" : "0pubLLJ7y6Ek1oco2ylO"
-    },
-    {
-      "id" : "AACVFVOcPc3JbhSkOEM0"
-    },
-    {
-      "id" : "RNtDKzgPepLaV5PolNBG"
-    },
-    {
-      "id" : "vXrUbN3WPGTX3C5EDQRv"
-    }
-  ];
-
+  final location_service = new LocationServicer();
 
   //make an async call to database to retrieve commutes (ALL of them at once)
   Future retrieve_commutes(Map<String, String> doc_id_map) async {
-    Map<String, dynamic>? data;
+    var data = {
+      "id" : doc_id_map["id"]
+    };
     //for now the entries are unordered, because we are calling them one at a time instead of all together
     //we can order them by calling as a group
     //But all the documents need to be grouped inside a *unique* collection specific to this device/user
       //unsure if we want users still though. Maybe just have a collection key that users can copy and share across devices
     var document = await FirebaseFirestore.instance.collection("commutes").doc(doc_id_map["id"]).get();
     setState(() {
-      data = doc_id_map;
-      data!["data"] = json.encode(document.data());
+      data!["data"] = json.encode(document.data()); //Turn object into String (easier to add as a field to other objects this way)
+                                                      //Use decode to turn string value field back into JSON object structure
       commute_entries.add(data);
     });
   }
@@ -108,12 +126,14 @@ class _MyHomePageState extends State<MyHomePage> {
     for (var doc_ID in saved_commute_ids){
       retrieve_commutes(doc_ID!);
     }
+    // print("List of stored saved items: ${storage.getItem("saved_commute_ids")}");
   }
 
   @override
   Widget build(BuildContext context) {
     final double Device_Height = MediaQuery.of(context).size.height;
     final double Device_Width = MediaQuery.of(context).size.width;
+
 
     // for (int i=0; i < commute_entries.length; i++)
     //   {
@@ -257,21 +277,22 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         )
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const MapSample()),
-          );
-        },
-        tooltip: 'Increment',
-        child: const Icon(Icons.map),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+      // floatingActionButton: FloatingActionButton(
+      //   onPressed: () {
+      //     Navigator.push(
+      //       context,
+      //       MaterialPageRoute(builder: (context) => const MapSample()),
+      //     );
+      //   },
+      //   tooltip: 'Increment',
+      //   child: const Icon(Icons.map),
+      // ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 
   dynamic getCommuteData(int list_indx, String data_key) {
     return json.decode(commute_entries[list_indx]["data"])[data_key];
   }
+
 
 }

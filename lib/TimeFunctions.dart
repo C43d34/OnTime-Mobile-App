@@ -50,6 +50,7 @@ bool isAM(int total_minutes){
   }
 }
 
+//get total minute count of a given time
 int getTotalMin(String hour, String min, bool isAM)
 {
   int total = 0;
@@ -73,4 +74,14 @@ int getTotalMin(String hour, String min, bool isAM)
 int withinTimeBounds(int total_minutes) //simply checks the minute representation of a time and binds it to be between 0 < x < 1440 minutes
 {
   return (total_minutes % 1440);
+}
+
+int getCurrMinutes()
+{
+  var dt = DateTime.now();
+  int cur_hours = dt.hour;
+  int cur_mins = dt.minute;
+  int total_minutes = cur_hours*60 + cur_mins;
+
+  return(total_minutes);
 }
