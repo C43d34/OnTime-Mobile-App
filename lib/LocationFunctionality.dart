@@ -22,7 +22,7 @@ class LocationServicer
   bool is_commuting = false;
 
   Timer pos_change_timer = Timer(const Duration(seconds: 0), () {});
-  final max_wait_time = const Duration(minutes: 2); //max time to wait until pos_change_timer should fire
+  final max_wait_time = const Duration(seconds: 20); //max time to wait until pos_change_timer should fire
 
   final stopwatch = Stopwatch(); //use to measure commute duration
   int last_stopwatch_timestamp_S = 0;
@@ -182,10 +182,12 @@ class LocationServicer
     if(existing_commute_id == null)
       {
         //submit new commute to database and such
+        print("Storing new commute...");
         Commute new_commute = buildNewCommute();
         storeNewCommuteEntry(new_commute);
       }
     else { //Commute already exists, we can reevalute some of the statistics
+        print("Updating existing commute");
         updateCurrentCommuteStats(existing_commute_id);
       }
 
@@ -206,6 +208,9 @@ class LocationServicer
         GeoPoint other_initial = existing_commute_entry.initial_position;
         GeoPoint other_final = existing_commute_entry.final_position;
 
+        print("Commute to match ${this.cur_commute_end_pos!.latitude}");
+        print("OTher commute match? ${other_final.latitude}");
+
         //get start and end longitude and latitude from the doc and compare (GeoPoint class object)
           //Compare with some degree of leeway (lets say 100 meter range)
         double meters_between_initial_pos = Geolocator.distanceBetween(
@@ -213,7 +218,9 @@ class LocationServicer
         double meters_between_final_pos = Geolocator.distanceBetween(
             other_final.latitude, other_final.longitude, this.cur_commute_end_pos!.latitude, this.cur_commute_end_pos!.longitude);
 
-        if(meters_between_final_pos > 150 || meters_between_initial_pos > 150){
+        //if two distance between the two points is kinda close then...
+        if(meters_between_final_pos < 150 && meters_between_initial_pos < 150){
+          print("Commute exists already ! ${existing_commute_id}");
           return existing_commute_id;
         }
       }
@@ -252,17 +259,17 @@ class LocationServicer
     Commute commute_data = getCommuteData(commute_entries.firstWhere((entry) => entry["id"] == doc_id_to_update));
 
     int times_commuted = commute_data.times_commuted;
-    double old_drivingBiking_minutes = commute_data.avg_drive_time as double;
-    double old_walking_minutes = commute_data.avg_walk_time as double;
-    double drivingBiking_minutes = (this.cur_driving_seconds + this.cur_biking_seconds ) / 60;
-    double walking_minutes = (this.cur_walking_seconds) / 60;
+    double old_drivingBiking_minutes = commute_data.avg_drive_time.toDouble();
+    double old_walking_minutes = commute_data.avg_walk_time.toDouble();
+    double drivingBiking_minutes = (this.cur_driving_seconds + this.cur_biking_seconds).toDouble() / 60;
+    double walking_minutes = (this.cur_walking_seconds).toDouble() / 60;
 
     // Recompute average values using new information
       //convert to int as rounding method (will lose info this way for sure)
     int avg_drivingBiking_minutes = ((times_commuted/times_commuted + 1) * old_drivingBiking_minutes
-        +(1 - (times_commuted/times_commuted + 1)) * drivingBiking_minutes) as int;
+        +(1 - (times_commuted/times_commuted + 1)) * drivingBiking_minutes).toInt();
     int avg_walking_minutes = ((times_commuted/times_commuted + 1) * old_walking_minutes
-        +(1 - (times_commuted/times_commuted + 1)) * walking_minutes) as int;
+        +(1 - (times_commuted/times_commuted + 1)) * walking_minutes).toInt();
 
     //It's possible ideal destination changed so update that as well
     int ideal_departure = commute_data.arrival_time - (avg_drivingBiking_minutes + avg_walking_minutes);

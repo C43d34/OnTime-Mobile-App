@@ -1,8 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:untitled/StorageFunctionality.dart';
 import 'package:untitled/TimeFunctions.dart';
 import 'dart:async';
+
+import 'package:untitled/main.dart';
 
 class CommutingDetails extends StatefulWidget {
   final entry_data;
@@ -17,7 +20,6 @@ class CommutingDetails extends StatefulWidget {
 }
 
 class _CommutingDetailsState extends State<CommutingDetails> {
-  var entry_data;
   final List<String> hr = List.generate(12, (index) => calcHour((index + 1) * 60));
   final List<String> min = List.generate(60, (index) => calcMin(index));
   final db = FirebaseFirestore.instance;
@@ -25,6 +27,8 @@ class _CommutingDetailsState extends State<CommutingDetails> {
   String arrival_hr = "1";
   String arrival_min = "1";
   String arrival_ampm = "AM";
+  String commute_name = "";
+
 
 
   @override
@@ -33,6 +37,7 @@ class _CommutingDetailsState extends State<CommutingDetails> {
     arrival_hr = calcHour(widget.entry_data["arrival_time"]);
     arrival_min = calcMin(widget.entry_data["arrival_time"]);
     arrival_ampm = resolveAMPM(widget.entry_data["AM_true"]);
+    commute_name = widget.entry_data["title"];
   }
 
   @override
@@ -41,27 +46,34 @@ class _CommutingDetailsState extends State<CommutingDetails> {
     final double Device_Height = MediaQuery.of(context).size.height;
     final double Device_Width = MediaQuery.of(context).size.width;
 
+
     print("desired arrival time ${arrival_hr}:${arrival_min}${arrival_ampm}");
 
 
     return WillPopScope(
-      onWillPop: () async {  //When screen is exited, will send updates to firebase of any changed data
-        /*
-          Expected changes to handle:
-            Commute name
-            ~~Desired arrival:: actually we should do this in real time incase user chooses to not exit this window
-            *Also maybe commute path itself, but this should be handled on demand*
-         */
+      onWillPop: () async {  //When screen is exited, will send updates to firebase of any changed data (currently useless)
+
         print("BingoBOngo");
-        Navigator.pop(context, widget.entry_data);
+        Navigator.pop(context, widget.entry_data); //will be sent back to previous page incase we want to do something with the data in here
+                                                    //that wasn't handled already
         return true;
       },
       child: Scaffold(
         resizeToAvoidBottomInset: false,
         appBar: AppBar(
           title: TextFormField(
-            initialValue: "${widget.entry_data["title"]}",
+            initialValue: commute_name,
             style: TextStyle(color: Colors.white, fontSize: 25),
+            onFieldSubmitted: (String new_name){
+              commute_name = new_name;
+              if(commute_name != widget.entry_data["title"])
+              {
+                Commute commute_to_update = Commute.fromJson(widget.entry_data);
+                commute_to_update.title = commute_name;
+                //submit changes locally and to database
+                updateCommuteEntry(widget.entry_id, commute_to_update);
+              }
+            },
           ),
         ),
         body: Container(

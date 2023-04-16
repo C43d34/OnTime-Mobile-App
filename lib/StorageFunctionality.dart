@@ -6,18 +6,18 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Commute
 {
-  final bool AM_true;
-  final int arrival_time;
-  final int avg_drive_time;
-  final int avg_walk_time;
-  final bool departure_AM_true;
-  final int departure_time;
-  final String destination;
-  final int entry_color;
-  final GeoPoint final_position;
-  final GeoPoint initial_position;
-  final String title;
-  final int times_commuted;
+  bool AM_true;
+  int arrival_time;
+  int avg_drive_time;
+  int avg_walk_time;
+  bool departure_AM_true;
+  int departure_time;
+  String destination;
+  int entry_color;
+  GeoPoint final_position;
+  GeoPoint initial_position;
+  String title;
+  int times_commuted;
 
   Commute({required this.times_commuted,required this.AM_true, required this.arrival_time, required this.avg_drive_time, required this.avg_walk_time, required this.departure_AM_true, required this.departure_time, required this.destination, required this.entry_color, required this.final_position, required this.initial_position, required this.title});
 
@@ -51,20 +51,6 @@ class Commute
   };
 }
 
-void submitCommuteToDB(Commute new_commute)
-{
-  //Store commute information into database
-  FirebaseFirestore.instance.collection("commutes").add(
-      new_commute.toJson()
-  ).then((doc_ref) {
-    //Store item ID to local storage so device will remember this commute
-    storage.setItem("id", doc_ref.id);
-  }).catchError((error)
-  {
-    print("Unsucessful in adding entry");
-    print(error);
-  });
-}
 
 ///Takes the object "id" = id and "data" = Commute
 ///and gets the Commute object specifically
@@ -76,10 +62,86 @@ Commute getCommuteData(Map<String, dynamic> entry_obj) {
 void updateCommuteEntry(String entry_doc_id, Commute commute_updated_data)
 {
   print("updated data: ${commute_updated_data.toJson()}");
+
+  //Update commute under specific id
+  FirebaseFirestore.instance.collection("commutes").doc(entry_doc_id).update(
+      commute_updated_data.toJson()
+  ).then((doc_ref) {
+    print("Doc update successful ${entry_doc_id}");
+    //find local commute entry matching ID and change its "data" value
+    print("entrty length ${commute_entries.length}");
+    for(var entry in commute_entries) {
+      if(entry["id"] == entry_doc_id){
+        entry["data"] = json.encode(commute_updated_data.toJson());
+      }
+    }
+  }).catchError((error)
+  {
+    print("Unsucessful in adding entry");
+    print(error);
+  });
+
+}
+
+///Update existing commute ONLY on DB side
+///Please ensure handle local runtime data updates if this function is used!
+void updateCommuteEntryOnlyDB(String entry_doc_id, Commute commute_updated_data)
+{
+  //Update commute under specific id
+  FirebaseFirestore.instance.collection("commutes").doc(entry_doc_id).update(
+      commute_updated_data.toJson()
+  ).then((doc_ref) {
+    print("Doc update successful ${entry_doc_id}");
+  }).catchError((error)
+  {
+    print("Unsucessful in adding entry");
+    print(error);
+  });
 }
 
 ///Submit new commute to db and local storage
-void storeNewCommuteEntry(Commute new_commute_data)
-{
+void storeNewCommuteEntry(Commute new_commute_data) async {
+
+  ///Returns document ID of the stored commute
+  Future<String> submitCommuteToDB(Commute new_commute) //returns as a future because we must wait for this query to finish before getting back out result
+  {
+    //Store commute information into database
+    var return_id = FirebaseFirestore.instance.collection("commutes").add(
+        new_commute.toJson()
+    ).then((doc_ref) {
+      //Store document ID of the stored commute
+      print("new document added ${doc_ref.id}");
+      return doc_ref.id; //return this back to the variable (doesn't return to function)
+    }).catchError((error)
+    {
+      print("Unsucessful in adding entry");
+      print(error);
+      return ""; //return this back to the variable (doesn't return to function)
+    });
+    return return_id; //(this return statement actually goes to function like we would expect
+  }
+
+  //DATABASE STORAGE STEP
+  //Store to DB and get the randomly generated ID of it
+  String new_commute_ID = await submitCommuteToDB(new_commute_data);
+  print("new ID ${new_commute_ID}");
+
+  //LOCALSTORAGE STEP
+  //Process ID and save to local storage in an object that is a list of ID:ID_VALUE pairs
+  saved_commute_ids.add(
+      {
+        "id": new_commute_ID
+      });
+
+  storage.setItem("saved_commute_ids",
+      saved_commute_ids); //replace last list with list containing the new entry
+
+  //Lastly, store data locally to runtime
+  commute_entries.add(
+      {
+        "id" : new_commute_ID,
+        "data" : json.encode(new_commute_data.toJson())
+      });
+
 
 }

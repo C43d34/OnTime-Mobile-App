@@ -45,6 +45,7 @@ void main() async {
   );
   await storage.ready.then((ready) { //wait for local storage to ready and then grab items before launching app
     var json_obj_list = storage.getItem("saved_commute_ids");
+    //populate runtime array of commute IDs by pulling from local storage
     for (var json in json_obj_list){
       saved_commute_ids.add({"id" : json["id"]}); //structure each entry individually so we can assure correct typing
     }
@@ -103,30 +104,36 @@ class _MyHomePageState extends State<MyHomePage> {
   final location_service = new LocationServicer();
 
   //make an async call to database to retrieve commutes (ALL of them at once)
-  Future retrieve_commutes(Map<String, String> doc_id_map) async {
-    var data = {
-      "id" : doc_id_map["id"]
-    };
-    //for now the entries are unordered, because we are calling them one at a time instead of all together
-    //we can order them by calling as a group
-    //But all the documents need to be grouped inside a *unique* collection specific to this device/user
+  Future<List> retrieve_commutes() async {
+    var user_commute_list = [];
+    for (var doc_id_map in saved_commute_ids)
+    {
+      var data = {
+        "id" : doc_id_map["id"]
+      };
+      //for now the entries are unordered, because we are calling them one at a time instead of all together
+      //we can order them by calling as a group
+      //But all the documents need to be grouped inside a *unique* collection specific to this device/user
       //unsure if we want users still though. Maybe just have a collection key that users can copy and share across devices
-    var document = await FirebaseFirestore.instance.collection("commutes").doc(doc_id_map["id"]).get();
-    setState(() {
+      var document = await FirebaseFirestore.instance.collection("commutes").doc(doc_id_map["id"]).get();
       data!["data"] = json.encode(document.data()); //Turn object into String (easier to add as a field to other objects this way)
-                                                      //Use decode to turn string value field back into JSON object structure
-      commute_entries.add(data);
-    });
+      //Use decode to turn string value field back into JSON object structure
+      user_commute_list.add(data);
+    }
+    return user_commute_list;
   }
 
   @override
   void didChangeDependencies() //unwraps the future return from retrieve_commutes for us
   {
     super.didChangeDependencies();
-    for (var doc_ID in saved_commute_ids){
-      retrieve_commutes(doc_ID!);
-    }
-    // print("List of stored saved items: ${storage.getItem("saved_commute_ids")}");
+    retrieve_commutes().then((commutes) {
+      setState(() {
+        commute_entries.clear(); //we have to clear this for when didchangedependencies gets called from keyboard opening and causes a bunch of rebuilds
+        commute_entries = commutes; //set commute_entries now that we know it is clear
+      });
+    });
+    print("did change dependencies finished");
   }
 
   @override
@@ -134,42 +141,7 @@ class _MyHomePageState extends State<MyHomePage> {
     final double Device_Height = MediaQuery.of(context).size.height;
     final double Device_Width = MediaQuery.of(context).size.width;
 
-
-    // for (int i=0; i < commute_entries.length; i++)
-    //   {
-    //     FirebaseFirestore.instance.collection("commutes").add(
-    //       commute_entries[i]
-    //     ).then((value) {
-    //       print("Successfully added new entry ${i}");
-    //     }).catchError((error)
-    //     {
-    //       print("Unsucessful in adding entry ${i}");
-    //       print(error);
-    //     });
-    //   }
-
-//         FirebaseFirestore.instance.collection("commutes").get(
-//               ).then((data) {
-//                 for (var value in data.docs) {
-//                   print(value.id); //these are the document ids that are randomly generated
-// //SAVE THESE IDS LOCALLY TO DEVICE SO WE KNOW WHICH COMMUTES BELONG TO WHO (we don't care about user authentication tbh)
-//                 }
-//               }).catchError((error)
-//               {
-//                 print(error);
-//               });
-//     var commute_entries = [];
-//     for (var docID in saved_commute_ids)
-//     {
-//       FirebaseFirestore.instance.collection("commutes").doc(docID["id"]).get(
-//       ).then((doc_snapshot){
-//         commute_entries.add(doc_snapshot.data() as Map<String, dynamic>); //add each entry of the document such that string : any
-//
-//       }).catchError((error){
-//         print("Error retrieving list of commutes on this device");
-//         print(error);
-//       });
-//     }
+    // resetLocalStorage();
 
     return Scaffold(
       appBar: AppBar(
@@ -196,7 +168,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           .then((amended_values) {
                             //when we return from this page, update the local commute data (assuming something changed)
                               //better to do this than to make another call to database
-                            commute_entries[index]["data"] = json.encode(amended_values);
+                            // commute_entries[index]["data"] = json.encode(amended_values);
                             setState(() {
                             });
                           });
@@ -294,5 +266,27 @@ class _MyHomePageState extends State<MyHomePage> {
     return json.decode(commute_entries[list_indx]["data"])[data_key];
   }
 
+  void resetLocalStorage()
+  {
+    var test_data = [
+      {
+        "id" : "0DRpxhntwQca4IWLYQTo"
+      },
+      {
+        "id" : "0pubLLJ7y6Ek1oco2ylO"
+      },
+      {
+        "id" : "AACVFVOcPc3JbhSkOEM0"
+      },
+      {
+        "id" : "RNtDKzgPepLaV5PolNBG"
+      },
+      {
+        "id" : "vXrUbN3WPGTX3C5EDQRv"
+      }
+    ];
+    storage.clear();
+    storage.setItem("saved_commute_ids", test_data);
+  }
 
 }
