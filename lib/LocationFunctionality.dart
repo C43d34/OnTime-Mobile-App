@@ -1,11 +1,12 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:localstorage/localstorage.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:untitled/main.dart';
 import 'StorageFunctionality.dart';
 import 'TimeFunctions.dart';
+import 'package:untitled/AuthFunctionality.dart';
+import 'package:geocoding/geocoding.dart';
+
 
 class LocationServicer
 {
@@ -19,6 +20,7 @@ class LocationServicer
   Position? cur_pos;
   Position? cur_commute_initial_pos;
   Position? cur_commute_end_pos;
+  String cur_commute_end_address = "";
   bool is_commuting = false;
 
   Timer pos_change_timer = Timer(const Duration(seconds: 0), () {});
@@ -113,6 +115,9 @@ class LocationServicer
 
     this.cur_pos = position; //current position update
     initiatePosChangeTimer(); //Waiting for next positional update (commuting)
+    //
+    // print("initial position : ${this.cur_commute_initial_pos}");
+    // print("current position : ${this.cur_pos}");
   }
 
   //Set(or Reset) a global time limit for next positional update
@@ -174,25 +179,30 @@ class LocationServicer
     this.is_commuting = false;
 
     //save commute endpoint
-    this.cur_commute_end_pos = this.cur_pos;
+    Geolocator.getCurrentPosition().then((final_endpoint) async {
+      this.cur_commute_end_pos = final_endpoint;
 
-    //Check if the commute that just occured already exists
-    String? existing_commute_id = commuteAlreadyExists();
-    //This is a new commute
-    if(existing_commute_id == null)
+      print("Final ENDpoint ${final_endpoint}");
+
+      //Check if the commute that just occured already exists
+      String? existing_commute_id = commuteAlreadyExists();
+      //This is a new commute
+      if(existing_commute_id == null)
       {
         //submit new commute to database and such
         print("Storing new commute...");
-        Commute new_commute = buildNewCommute();
+        Commute new_commute = await buildNewCommute();
         storeNewCommuteEntry(new_commute);
       }
-    else { //Commute already exists, we can reevalute some of the statistics
+      else { //Commute already exists, we can reevalute some of the statistics
         print("Updating existing commute");
         updateCurrentCommuteStats(existing_commute_id);
       }
 
-    //reset all values
-    resetStats();
+      //reset all values
+      resetStats();
+    });
+
   }
 
   //returns document id of a commute (if it exists) that matches location information of the current commute
@@ -227,7 +237,7 @@ class LocationServicer
     return null;
   }
 
-  Commute buildNewCommute()
+  Future<Commute> buildNewCommute() async
   {
     //round time values to minutes
     int walking_minutes = (this.cur_walking_seconds / 60).toInt();
@@ -235,6 +245,14 @@ class LocationServicer
 
     int arrival_time = getCurrMinutes();
     int departure_time = arrival_time - (walking_minutes + drivingBiking_minutes);
+
+    //build human readable destination address
+    List<Placemark> placemarks = await placemarkFromCoordinates(this.cur_commute_end_pos!.latitude, this.cur_commute_end_pos!.longitude);
+    String street = placemarks[0].street == null ? "" : placemarks[0].street!;
+    String city = placemarks[0].locality == null ? "" : placemarks[0].locality!;
+    this.cur_commute_end_address = street + ", " + city;
+    print("dest ${this.cur_commute_end_address}");
+
 
     return new Commute(
         times_commuted: 1,
@@ -244,11 +262,13 @@ class LocationServicer
         avg_walk_time: walking_minutes,
         departure_AM_true: isAM(departure_time),
         departure_time: departure_time,
-        destination: "TBD", //use geocoding plugin to estimate address from endpoint coordinates
+        destination: this.cur_commute_end_address,
         entry_color: 4294956367,
         final_position: GeoPoint(this.cur_commute_end_pos!.latitude, this.cur_commute_end_pos!.longitude),
         initial_position: GeoPoint(this.cur_commute_initial_pos!.latitude, this.cur_commute_initial_pos!.longitude),
-        title: "New Unnamed Commute");
+        title: "New Unnamed Commute",
+        owner: local_UUID,
+    );
   }
 
   //Update existing commute that just occurred
@@ -286,7 +306,8 @@ class LocationServicer
         entry_color: commute_data.entry_color,
         final_position: commute_data.final_position,
         initial_position: commute_data.initial_position,
-        title: commute_data.title
+        title: commute_data.title,
+        owner: commute_data.owner
     );
 
     //Submit changes to database and update local storage
@@ -303,6 +324,7 @@ class LocationServicer
     this.stopwatch.reset();
     this.cur_commute_initial_pos = null;
     this.cur_commute_end_pos = null;
+    this.cur_commute_end_address = "";
   }
 
 }

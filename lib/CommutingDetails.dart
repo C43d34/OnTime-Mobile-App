@@ -3,9 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:untitled/StorageFunctionality.dart';
 import 'package:untitled/TimeFunctions.dart';
-import 'dart:async';
+import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 
-import 'package:untitled/main.dart';
 
 class CommutingDetails extends StatefulWidget {
   final entry_data;
@@ -24,10 +23,13 @@ class _CommutingDetailsState extends State<CommutingDetails> {
   final List<String> min = List.generate(60, (index) => calcMin(index));
   final db = FirebaseFirestore.instance;
   final ampm = ["AM", "PM"];
+  late final LatLng dest;
+  late final LatLng source;
   String arrival_hr = "1";
   String arrival_min = "1";
   String arrival_ampm = "AM";
   String commute_name = "";
+  List<LatLng> route_points = [];
 
 
 
@@ -38,6 +40,13 @@ class _CommutingDetailsState extends State<CommutingDetails> {
     arrival_min = calcMin(widget.entry_data["arrival_time"]);
     arrival_ampm = resolveAMPM(widget.entry_data["AM_true"]);
     commute_name = widget.entry_data["title"];
+    var dest_lat = widget.entry_data["final_position"]["latitude"];
+    var dest_long = widget.entry_data["final_position"]["longitude"];
+    var src_lat = widget.entry_data["initial_position"]["latitude"];
+    var src_long = widget.entry_data["initial_position"]["longitude"];
+    dest = LatLng(dest_lat, dest_long);
+    source = LatLng(src_lat, src_long);
+    getRoutePath();
   }
 
   @override
@@ -46,9 +55,8 @@ class _CommutingDetailsState extends State<CommutingDetails> {
     final double Device_Height = MediaQuery.of(context).size.height;
     final double Device_Width = MediaQuery.of(context).size.width;
 
-
-    print("desired arrival time ${arrival_hr}:${arrival_min}${arrival_ampm}");
-
+    print(widget.entry_data["initial_position"]);
+    print(widget.entry_data["final_position"]);
 
     return WillPopScope(
       onWillPop: () async {  //When screen is exited, will send updates to firebase of any changed data (currently useless)
@@ -88,26 +96,36 @@ class _CommutingDetailsState extends State<CommutingDetails> {
               //GoogleMAP widget (show commute route)
                   Expanded(
                     flex: 38,
-                    child: Container(
-                      width: Device_Width*0.9,
-                      child: GoogleMap(
-                        mapToolbarEnabled: false,
-                        liteModeEnabled: true,
-                        mapType: MapType.normal,
-                        initialCameraPosition: CameraPosition(
-                          target: LatLng(37.4219983, -122.084),
-                          zoom: 10,
-                        ),
-                        markers: {
-                          Marker(
-                            markerId: MarkerId("Source"),
-                            position: LatLng(37.4219983, -122.084),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 1),
+                      child: Container(
+                        width: Device_Width*0.9,
+                        child: GoogleMap(
+                          mapToolbarEnabled: false,
+                          mapType: MapType.normal,
+                          polylines: {
+                            Polyline(
+                              polylineId: PolylineId("Route"),
+                              points: route_points,
+                              color: Colors.lightBlueAccent,
+                              width: 5,
+                            )
+                          },
+                          initialCameraPosition: CameraPosition(
+                            target: dest,
+                            zoom: 12,
                           ),
-                          Marker(
-                            markerId: MarkerId("Destination"),
-                            position: LatLng(30.12121, 52.12),
-                          )
-                        }
+                          markers: {
+                            Marker(
+                              markerId: const MarkerId("Destination"),
+                              position: dest,
+                            ),
+                            // Marker(
+                            //   markerId: const MarkerId("Src"),
+                            //   position: source,
+                            // )
+                          }
+                        ),
                       ),
                     ),
                   ),
@@ -368,7 +386,7 @@ class _CommutingDetailsState extends State<CommutingDetails> {
                                             child: Align(
                                               alignment: Alignment.centerRight,
                                               child: Text(
-                                                "${(widget.entry_data["avg_walk_time"] + widget.entry_data["avg_drive_time"])}",
+                                                "${(widget.entry_data["avg_walk_time"] + widget.entry_data["avg_drive_time"])} (min)",
                                               ),
                                             ),
                                           ),
@@ -383,7 +401,7 @@ class _CommutingDetailsState extends State<CommutingDetails> {
                                             child: Align(
                                               alignment: Alignment.centerLeft,
                                               child: Text(
-                                                "Average Walking Time:",
+                                                "Avg. Walking Time:",
                                               ),
                                             ),
                                           ),
@@ -391,7 +409,7 @@ class _CommutingDetailsState extends State<CommutingDetails> {
                                             child: Align(
                                               alignment: Alignment.centerRight,
                                               child: Text(
-                                                "${widget.entry_data["avg_walk_time"]}",
+                                                "${widget.entry_data["avg_walk_time"]} (min)",
                                               ),
                                             ),
                                           ),
@@ -406,7 +424,7 @@ class _CommutingDetailsState extends State<CommutingDetails> {
                                             child: Align(
                                               alignment: Alignment.centerLeft,
                                               child: Text(
-                                                "Average Driving Time:",
+                                                "Avg. Drive/Biking Time:",
                                               ),
                                             ),
                                           ),
@@ -414,7 +432,30 @@ class _CommutingDetailsState extends State<CommutingDetails> {
                                             child: Align(
                                               alignment: Alignment.centerRight,
                                               child: Text(
-                                                "${widget.entry_data["avg_drive_time"]}",
+                                                "${widget.entry_data["avg_drive_time"]} (min)",
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2),
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            child: Align(
+                                              alignment: Alignment.centerLeft,
+                                              child: Text(
+                                                "Total Times Commuted:",
+                                              ),
+                                            ),
+                                          ),
+                                          Expanded(
+                                            child: Align(
+                                              alignment: Alignment.centerRight,
+                                              child: Text(
+                                                "${widget.entry_data["times_commuted"]}",
                                               ),
                                             ),
                                           ),
@@ -436,15 +477,6 @@ class _CommutingDetailsState extends State<CommutingDetails> {
             ),
           ),
         ),
-          floatingActionButton: FloatingActionButton(
-          onPressed: () {
-            setState(() {
-              didChangeDependencies();
-            });
-          },
-          tooltip: 'Increment',
-          child: const Icon(Icons.map),
-        ), // This trailing comma m,// This trailing comma makes auto-formatting nicer for build methods.
       ),
     );
   }
@@ -485,5 +517,31 @@ class _CommutingDetailsState extends State<CommutingDetails> {
     {
       widget.entry_data[key] = value;
     });
+  }
+
+  void getRoutePath() async
+  {
+    PolylinePoints polyline = PolylinePoints();
+
+    polyline.getRouteBetweenCoordinates(
+        "AIzaSyBce6Z3cfRfUxq-Vi0cuVDeTv3NxcPIBn0",
+        PointLatLng(source.latitude, source.longitude),
+        PointLatLng(dest.latitude, dest.longitude)
+    ).then((route) {
+      print(route.errorMessage);
+      if (route.points.isNotEmpty)
+      {
+        for (var point in route.points)
+          {
+            route_points.add(LatLng(point.latitude, point.longitude));
+          }
+        setState(() {
+        });
+      }
+    }).catchError((e)
+    {
+      print("Something wrong with google api ${e}");
+    });
+
   }
 }

@@ -3,15 +3,14 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:geolocator/geolocator.dart';
 import 'firebase_options.dart';
 import 'package:flutter/material.dart';
-import 'package:untitled/CPPMain.dart';
 import 'package:untitled/CommutingDetails.dart';
 import 'package:untitled/TimeFunctions.dart';
 import 'package:untitled/LocationFunctionality.dart';
 import 'package:localstorage/localstorage.dart';
-import 'StorageFunctionality.dart';
+import "package:untitled/AuthFunctionality.dart";
+import 'package:geocoding/geocoding.dart';
 
 
 ///GLOBAL VARIABLES
@@ -44,7 +43,10 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   await storage.ready.then((ready) { //wait for local storage to ready and then grab items before launching app
-    var json_obj_list = storage.getItem("saved_commute_ids");
+    generateLocalUUID(); //make sure user authentication is valid : then we can start pulling commute data
+    // resetLocalStorage();
+    // storage.clear();
+    List<dynamic> json_obj_list = (storage.getItem("saved_commute_ids") == null ? [] : storage.getItem("saved_commute_ids")); //return empty or something
     //populate runtime array of commute IDs by pulling from local storage
     for (var json in json_obj_list){
       saved_commute_ids.add({"id" : json["id"]}); //structure each entry individually so we can assure correct typing
@@ -133,7 +135,6 @@ class _MyHomePageState extends State<MyHomePage> {
         commute_entries = commutes; //set commute_entries now that we know it is clear
       });
     });
-    print("did change dependencies finished");
   }
 
   @override
@@ -142,6 +143,17 @@ class _MyHomePageState extends State<MyHomePage> {
     final double Device_Width = MediaQuery.of(context).size.width;
 
     // resetLocalStorage();
+    // print(local_UUID); //bb315390-de52-11ed-912e-fb42397d9608
+    List<Placemark> placemarks;
+    //latitude: 34.058145, longitude: -117.824840)
+    placemarkFromCoordinates(34.058145, -117.824840).then((value)
+    {
+      List<Placemark> placemarks = value;
+      String street = placemarks[0].street == null ? "" : placemarks[0].street!;
+      String city = placemarks[0].locality == null ? "" : placemarks[0].locality!;
+      print("${street}, ${city}");
+    });
+
 
     return Scaffold(
       appBar: AppBar(
@@ -209,7 +221,10 @@ class _MyHomePageState extends State<MyHomePage> {
                                   child: Column(
                                     children: [
                                       Text("Going to: "),
-                                      Text("${getCommuteData(index, "destination")}"),
+                                      Text(
+                                        "${getCommuteData(index, "destination")}",
+                                        textAlign: TextAlign.center,
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -265,28 +280,34 @@ class _MyHomePageState extends State<MyHomePage> {
   dynamic getCommuteData(int list_indx, String data_key) {
     return json.decode(commute_entries[list_indx]["data"])[data_key];
   }
-
-  void resetLocalStorage()
-  {
-    var test_data = [
-      {
-        "id" : "0DRpxhntwQca4IWLYQTo"
-      },
-      {
-        "id" : "0pubLLJ7y6Ek1oco2ylO"
-      },
-      {
-        "id" : "AACVFVOcPc3JbhSkOEM0"
-      },
-      {
-        "id" : "RNtDKzgPepLaV5PolNBG"
-      },
-      {
-        "id" : "vXrUbN3WPGTX3C5EDQRv"
-      }
-    ];
-    storage.clear();
-    storage.setItem("saved_commute_ids", test_data);
-  }
-
 }
+
+void resetLocalStorage()
+{
+  var test_data = [
+    {
+      "id" : "0DRpxhntwQca4IWLYQTo"
+    },
+    {
+      "id" : "0pubLLJ7y6Ek1oco2ylO"
+    },
+    {
+      "id" : "AACVFVOcPc3JbhSkOEM0"
+    },
+    {
+      "id" : "RNtDKzgPepLaV5PolNBG"
+    },
+    {
+      "id" : "vXrUbN3WPGTX3C5EDQRv"
+    },
+    {
+      "id" : "3ZByANfWALxauHX7ICwW"
+    },
+    {
+      "id" : "GajBY5uhuKefMBWhkOUH"
+    },
+  ];
+  storage.deleteItem("saved_commute_ids");
+  storage.setItem("saved_commute_ids", test_data);
+}
+

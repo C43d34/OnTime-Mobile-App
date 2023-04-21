@@ -18,8 +18,9 @@ class Commute
   GeoPoint initial_position;
   String title;
   int times_commuted;
+  String owner;
 
-  Commute({required this.times_commuted,required this.AM_true, required this.arrival_time, required this.avg_drive_time, required this.avg_walk_time, required this.departure_AM_true, required this.departure_time, required this.destination, required this.entry_color, required this.final_position, required this.initial_position, required this.title});
+  Commute({required this.owner, required this.times_commuted,required this.AM_true, required this.arrival_time, required this.avg_drive_time, required this.avg_walk_time, required this.departure_AM_true, required this.departure_time, required this.destination, required this.entry_color, required this.final_position, required this.initial_position, required this.title});
 
   Commute.fromJson(Map<String, dynamic> json)
       : times_commuted = json["times_commuted"],
@@ -33,7 +34,8 @@ class Commute
         entry_color = json["entry_color"],
         final_position = GeoPoint.fromJson(json["final_position"]),
         initial_position = GeoPoint.fromJson(json["initial_position"]),
-        title = json["title"];
+        title = json["title"],
+        owner = json["owner"];
 
   Map<String, dynamic> toJson() => {
     'times_commuted': times_commuted,
@@ -48,6 +50,7 @@ class Commute
     'final_position' : final_position,
     'initial_position' : initial_position,
     'title' : title,
+    'owner' : owner,
   };
 }
 
