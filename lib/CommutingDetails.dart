@@ -55,9 +55,6 @@ class _CommutingDetailsState extends State<CommutingDetails> {
     final double Device_Height = MediaQuery.of(context).size.height;
     final double Device_Width = MediaQuery.of(context).size.width;
 
-    print(widget.entry_data["initial_position"]);
-    print(widget.entry_data["final_position"]);
-
     return WillPopScope(
       onWillPop: () async {  //When screen is exited, will send updates to firebase of any changed data (currently useless)
 
@@ -76,10 +73,7 @@ class _CommutingDetailsState extends State<CommutingDetails> {
               commute_name = new_name;
               if(commute_name != widget.entry_data["title"])
               {
-                Commute commute_to_update = Commute.fromJson(widget.entry_data);
-                commute_to_update.title = commute_name;
-                //submit changes locally and to database
-                updateCommuteEntry(widget.entry_id, commute_to_update);
+                widget.entry_data["title"] = commute_name;
               }
             },
           ),
@@ -486,7 +480,7 @@ class _CommutingDetailsState extends State<CommutingDetails> {
   //Reevaluate the projected departure time (assuming desired arrival time was changed)
   void timeUpdate(){
     int arrival_time = getTotalMin(arrival_hr, arrival_min, arrival_ampm.startsWith("A"));
-    int departure_time =  withinTimeBounds(arrival_time + (widget.entry_data["avg_drive_time"] + widget.entry_data["avg_walk_time"]) as int);
+    int departure_time =  withinTimeBounds(arrival_time - (widget.entry_data["avg_drive_time"] - widget.entry_data["avg_walk_time"]) as int);
 
     print("Arrival time ${arrival_time}");
     print("Departure time ${departure_time}");

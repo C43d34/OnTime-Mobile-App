@@ -44,7 +44,7 @@ void main() async {
   );
   await storage.ready.then((ready) { //wait for local storage to ready and then grab items before launching app
     generateLocalUUID(); //make sure user authentication is valid : then we can start pulling commute data
-    resetLocalStorage();
+    // resetLocalStorage();
     // storage.clear();
     List<dynamic> json_obj_list = (storage.getItem("saved_commute_ids") == null ? [] : storage.getItem("saved_commute_ids")); //return empty or something
     //populate runtime array of commute IDs by pulling from local storage
@@ -148,7 +148,6 @@ class _MyHomePageState extends State<MyHomePage> {
     // resetLocalStorage();
     // print(local_UUID);
 
-
     return Scaffold(
       appBar: AppBar(
         // Here we take the value from the MyHomePage object that was created by
@@ -205,7 +204,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             Padding(
                               padding: const EdgeInsets.all(2.0),
                               child: Text(
-                                  "Latest Departure @: "
+                                  "Begin Departure @: "
                                       + "${calcHour(getCommuteData(index, "departure_time"))}:"
                                       + "${calcMin(getCommuteData(index, "departure_time"))}"
                                       + "${resolveAMPM(getCommuteData(index, "departure_AM_true"))}",
