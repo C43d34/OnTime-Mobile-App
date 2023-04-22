@@ -74,6 +74,7 @@ class _CommutingDetailsState extends State<CommutingDetails> {
               if(commute_name != widget.entry_data["title"])
               {
                 widget.entry_data["title"] = commute_name;
+                updateCommuteEntryOnlyDB(widget.entry_id, Commute.fromJson(widget.entry_data));
               }
             },
           ),
