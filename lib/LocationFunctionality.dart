@@ -24,7 +24,7 @@ class LocationServicer
   bool is_commuting = false;
 
   Timer pos_change_timer = Timer(const Duration(seconds: 0), () {});
-  final max_wait_time = const Duration(seconds: 20); //max time to wait until pos_change_timer should fire
+  final max_wait_time = const Duration(minutes: 2); //max time to wait until pos_change_timer should fire
 
   final stopwatch = Stopwatch(); //use to measure commute duration
   int last_stopwatch_timestamp_S = 0;

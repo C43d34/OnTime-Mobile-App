@@ -99,7 +99,9 @@ class _CommutingDetailsState extends State<CommutingDetails> {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 1),
                       child: Container(
-                        width: Device_Width*0.9,
+                        decoration: BoxDecoration(
+                          color: Colors.black,
+                        ),
                         child: GoogleMap(
                           mapToolbarEnabled: false,
                           mapType: MapType.normal,

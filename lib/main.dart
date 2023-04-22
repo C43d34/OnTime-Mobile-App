@@ -44,7 +44,7 @@ void main() async {
   );
   await storage.ready.then((ready) { //wait for local storage to ready and then grab items before launching app
     generateLocalUUID(); //make sure user authentication is valid : then we can start pulling commute data
-    // resetLocalStorage();
+    resetLocalStorage();
     // storage.clear();
     List<dynamic> json_obj_list = (storage.getItem("saved_commute_ids") == null ? [] : storage.getItem("saved_commute_ids")); //return empty or something
     //populate runtime array of commute IDs by pulling from local storage
@@ -64,7 +64,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'OnTime MobileAPP',
       theme: ThemeData(
         // This is the theme of your application.
         //
@@ -76,9 +76,12 @@ class MyApp extends StatelessWidget {
         // Notice that the counter didn't reset back to zero; the application
         // is not restarted.
         primarySwatch: Colors.brown,
-        scaffoldBackgroundColor: Colors.white54
+        scaffoldBackgroundColor: Colors.white54,
+        textTheme: TextTheme(
+            titleLarge: TextStyle(color: Color.fromARGB(255, 3, 80, 0)),
+            headlineMedium: TextStyle(color: Colors.black))
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const MyHomePage(title: 'My Commutes'),
     );
   }
 }
@@ -143,16 +146,7 @@ class _MyHomePageState extends State<MyHomePage> {
     final double Device_Width = MediaQuery.of(context).size.width;
 
     // resetLocalStorage();
-    // print(local_UUID); //bb315390-de52-11ed-912e-fb42397d9608
-    List<Placemark> placemarks;
-    //latitude: 34.058145, longitude: -117.824840)
-    placemarkFromCoordinates(34.058145, -117.824840).then((value)
-    {
-      List<Placemark> placemarks = value;
-      String street = placemarks[0].street == null ? "" : placemarks[0].street!;
-      String city = placemarks[0].locality == null ? "" : placemarks[0].locality!;
-      print("${street}, ${city}");
-    });
+    // print(local_UUID);
 
 
     return Scaffold(
@@ -173,14 +167,18 @@ class _MyHomePageState extends State<MyHomePage> {
               itemCount: commute_entries.length,
               itemBuilder: (BuildContext context, int index) {
                   return Container(
-                    color: Color(getCommuteData(index, "entry_color") as int), //as "Object_type" op tech
+                    decoration: BoxDecoration(
+                      color: Color(getCommuteData(index, "entry_color") as int),
+                      borderRadius: BorderRadius.all(Radius.circular(10)),
+                    ),
+                    // color: Color(getCommuteData(index, "entry_color") as int), //as "Object_type" op tech
                     child: InkWell(
                       onTap: () {Navigator.push(context, MaterialPageRoute(builder: (context) =>
                           CommutingDetails(entry_data : json.decode(commute_entries[index]["data"]), entry_id : commute_entries[index]["id"])))
                           .then((amended_values) {
                             //when we return from this page, update the local commute data (assuming something changed)
                               //better to do this than to make another call to database
-                            // commute_entries[index]["data"] = json.encode(amended_values);
+                            commute_entries[index]["data"] = json.encode(amended_values);
                             setState(() {
                             });
                           });
