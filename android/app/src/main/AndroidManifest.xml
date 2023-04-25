@@ -10,7 +10,7 @@
         android:label="OnTime"
         android:icon="@mipmap/ontime_icon">
         <meta-data android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyBce6Z3cfRfUxq-Vi0cuVDeTv3NxcPIBn0"/>
+            android:value="<GOOGLE_API_KEY_HERE"/>
         <activity
             android:name=".MainActivity"
             android:exported="true"
