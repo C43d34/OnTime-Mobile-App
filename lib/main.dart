@@ -15,7 +15,7 @@ import 'package:geocoding/geocoding.dart';
 
 ///GLOBAL VARIABLES
 final LocalStorage storage = new LocalStorage('localstorage.json');
-final String GOOGLE_API_KEY = "AIzaSyBce6Z3cfRfUxq-Vi0cuVDeTv3NxcPIBn0";
+final String GOOGLE_API_KEY = "GOOGLE_API_KEY_HERE";
 var commute_entries = [];
   //contains an "id" field mapped to a String
   //and a "data" field mapped to a json string encoded Commute object (must be decoded)
