@@ -4,6 +4,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:untitled/StorageFunctionality.dart';
 import 'package:untitled/TimeFunctions.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
+import 'package:untitled/main.dart';
 
 
 class CommutingDetails extends StatefulWidget {
@@ -521,7 +522,7 @@ class _CommutingDetailsState extends State<CommutingDetails> {
     PolylinePoints polyline = PolylinePoints();
 
     polyline.getRouteBetweenCoordinates(
-        "AIzaSyBce6Z3cfRfUxq-Vi0cuVDeTv3NxcPIBn0",
+        GOOGLE_API_KEY,
         PointLatLng(source.latitude, source.longitude),
         PointLatLng(dest.latitude, dest.longitude)
     ).then((route) {

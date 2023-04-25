@@ -15,6 +15,7 @@ import 'package:geocoding/geocoding.dart';
 
 ///GLOBAL VARIABLES
 final LocalStorage storage = new LocalStorage('localstorage.json');
+final String GOOGLE_API_KEY = "AIzaSyBce6Z3cfRfUxq-Vi0cuVDeTv3NxcPIBn0";
 var commute_entries = [];
   //contains an "id" field mapped to a String
   //and a "data" field mapped to a json string encoded Commute object (must be decoded)
@@ -44,7 +45,7 @@ void main() async {
   );
   await storage.ready.then((ready) { //wait for local storage to ready and then grab items before launching app
     generateLocalUUID(); //make sure user authentication is valid : then we can start pulling commute data
-    resetLocalStorage();
+    // resetLocalStorage();
     // storage.clear();
     List<dynamic> json_obj_list = (storage.getItem("saved_commute_ids") == null ? [] : storage.getItem("saved_commute_ids")); //return empty or something
     //populate runtime array of commute IDs by pulling from local storage
@@ -147,6 +148,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     // resetLocalStorage();
     // print(local_UUID);
+    // storage.clear();
 
 
     return Scaffold(

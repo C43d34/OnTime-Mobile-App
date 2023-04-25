@@ -2,13 +2,12 @@
     package="com.example.untitled">
 
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
-    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.INTERNET"/>
    <application
-        android:label="OnTime"
         android:name="${applicationName}"
+        android:label="OnTime"
         android:icon="@mipmap/ontime_icon">
         <meta-data android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyBce6Z3cfRfUxq-Vi0cuVDeTv3NxcPIBn0"/>

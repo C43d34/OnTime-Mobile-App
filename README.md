@@ -12,6 +12,8 @@ To get started running the app on an android emulation
             flutter.sdk=<directory path where Flutter is installed on local machine> 
             flutter.buildMode=debug
             flutter.minSdkVersion= (20 or higher is recommended)
+    - Go to main.dart file in lib, add in your own google api key with Maps SDK for Android enabled 
+        - Do the same for AndroidManifest.xml
 
 Testing the APP: (Use Android studios to run the app on an emulated Android device)
 
