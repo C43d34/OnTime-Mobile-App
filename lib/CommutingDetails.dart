@@ -482,7 +482,7 @@ class _CommutingDetailsState extends State<CommutingDetails> {
   //Reevaluate the projected departure time (assuming desired arrival time was changed)
   void timeUpdate(){
     int arrival_time = getTotalMin(arrival_hr, arrival_min, arrival_ampm.startsWith("A"));
-    int departure_time =  withinTimeBounds(arrival_time - (widget.entry_data["avg_drive_time"] - widget.entry_data["avg_walk_time"]) as int);
+    int departure_time =  withinTimeBounds(arrival_time - (widget.entry_data["avg_drive_time"] + widget.entry_data["avg_walk_time"]) as int);
 
     print("Arrival time ${arrival_time}");
     print("Departure time ${departure_time}");
