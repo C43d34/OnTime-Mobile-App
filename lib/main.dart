@@ -107,7 +107,13 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
+  static bool user_consent = false;
   final location_service = new LocationServicer();
+
+  static bool get userConsent {
+    return user_consent;
+  }
+
 
   //make an async call to database to retrieve commutes (ALL of them at once)
   Future<List> retrieve_commutes() async {
@@ -130,9 +136,17 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   @override
-  void didChangeDependencies() //unwraps the future return from retrieve_commutes for us
+  void didChangeDependencies() async //unwraps the future return from retrieve_commutes for us
   {
     super.didChangeDependencies();
+    bool? consent = await storage.getItem("user_consent");
+    if(consent == null) {
+        user_consent = false;
+      }
+    else{
+      user_consent = consent;
+    }
+
     retrieve_commutes().then((commutes) {
       setState(() {
         commute_entries.clear(); //we have to clear this for when didchangedependencies gets called from keyboard opening and causes a bunch of rebuilds
@@ -150,126 +164,167 @@ class _MyHomePageState extends State<MyHomePage> {
     // print(local_UUID);
     // storage.clear();
 
-
     return Scaffold(
       appBar: AppBar(
         // Here we take the value from the MyHomePage object that was created by
         // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
       ),
-      body: Center(
+      body: (() {
+        if(user_consent)
+          {
+            //If user has consented to initial "prominent disclosure"
+            location_service.initialize();
+            return Center(
 
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Container(
-          padding: EdgeInsets.symmetric(vertical: Device_Height*0.03),
-          child: ListView.separated(
+              // Center is a layout widget. It takes a single child and positions it
+              // in the middle of the parent.
+                child: Container(
+                  padding: EdgeInsets.symmetric(vertical: Device_Height*0.03),
+                  child: ListView.separated(
 
-              padding: EdgeInsets.symmetric(horizontal: Device_Width*0.05),
-              itemCount: commute_entries.length,
-              itemBuilder: (BuildContext context, int index) {
-                  return Container(
-                    decoration: BoxDecoration(
-                      color: Color(getCommuteData(index, "entry_color") as int),
-                      borderRadius: BorderRadius.all(Radius.circular(10)),
-                    ),
-                    // color: Color(getCommuteData(index, "entry_color") as int), //as "Object_type" op tech
-                    child: InkWell(
-                      onTap: () {Navigator.push(context, MaterialPageRoute(builder: (context) =>
-                          CommutingDetails(entry_data : json.decode(commute_entries[index]["data"]), entry_id : commute_entries[index]["id"])))
-                          .then((amended_values) {
+                    padding: EdgeInsets.symmetric(horizontal: Device_Width*0.05),
+                    itemCount: commute_entries.length,
+                    itemBuilder: (BuildContext context, int index) {
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: Color(getCommuteData(index, "entry_color") as int),
+                          borderRadius: BorderRadius.all(Radius.circular(10)),
+                        ),
+                        // color: Color(getCommuteData(index, "entry_color") as int), //as "Object_type" op tech
+                        child: InkWell(
+                          onTap: () {Navigator.push(context, MaterialPageRoute(builder: (context) =>
+                              CommutingDetails(entry_data : json.decode(commute_entries[index]["data"]), entry_id : commute_entries[index]["id"])))
+                              .then((amended_values) {
                             //when we return from this page, update the local commute data (assuming something changed)
-                              //better to do this than to make another call to database
+                            //better to do this than to make another call to database
                             commute_entries[index]["data"] = json.encode(amended_values);
                             setState(() {
                             });
                           });
-                      },
-                      child: Column(
-                          children: [
-                            FittedBox(
-                              fit: BoxFit.fitWidth,
-                              child: Text(
-                                  "${getCommuteData(index, "title")}",
-                                  style: Theme.of(context).textTheme.headlineMedium
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(2.0),
-                              child: Text(
-                                  "Arriving @ "
-                                      + "${calcHour(getCommuteData(index, "arrival_time"))}:"
-                                      + "${calcMin(getCommuteData(index, "arrival_time"))}"
-                                      + "${resolveAMPM(getCommuteData(index, "AM_true"))}",
-                                  style: Theme.of(context).textTheme.titleLarge
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(2.0),
-                              child: Text(
-                                  "Begin Departure @: "
-                                      + "${calcHour(getCommuteData(index, "departure_time"))}:"
-                                      + "${calcMin(getCommuteData(index, "departure_time"))}"
-                                      + "${resolveAMPM(getCommuteData(index, "departure_AM_true"))}",
-                                  style: Theme.of(context).textTheme.titleLarge
-                              ),
-                            ),
-                            Row(
+                          },
+                          child: Column(
                               children: [
-                                Expanded(
-                                  flex: 20,
-                                  child: Column(
-                                    children: [
-                                      Text("Going to: "),
-                                      Text(
-                                        "${getCommuteData(index, "destination")}",
-                                        textAlign: TextAlign.center,
+                                FittedBox(
+                                  fit: BoxFit.fitWidth,
+                                  child: Text(
+                                      "${getCommuteData(index, "title")}",
+                                      style: Theme.of(context).textTheme.headlineMedium
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.all(2.0),
+                                  child: Text(
+                                      "Arriving @ "
+                                          + "${calcHour(getCommuteData(index, "arrival_time"))}:"
+                                          + "${calcMin(getCommuteData(index, "arrival_time"))}"
+                                          + "${resolveAMPM(getCommuteData(index, "AM_true"))}",
+                                      style: Theme.of(context).textTheme.titleLarge
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.all(2.0),
+                                  child: Text(
+                                      "Begin Departure @: "
+                                          + "${calcHour(getCommuteData(index, "departure_time"))}:"
+                                          + "${calcMin(getCommuteData(index, "departure_time"))}"
+                                          + "${resolveAMPM(getCommuteData(index, "departure_AM_true"))}",
+                                      style: Theme.of(context).textTheme.titleLarge
+                                  ),
+                                ),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      flex: 20,
+                                      child: Column(
+                                        children: [
+                                          Text("Going to: "),
+                                          Text(
+                                            "${getCommuteData(index, "destination")}",
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ],
                                       ),
-                                    ],
-                                  ),
+                                    ),
+                                    Expanded(
+                                      flex: 20,
+                                      child: Row(
+                                        children: [
+                                          if (getCommuteData(index, "avg_walk_time") != 0)
+                                            Icon(
+                                              Icons.directions_walk,
+                                              color: Colors.green,
+                                              size: 30.0,
+                                            ),
+                                          if (getCommuteData(index, "avg_drive_time") != 0)
+                                            Icon(
+                                              Icons.directions_bike,
+                                              color: Colors.black,
+                                              size: 30.0,
+                                            ),
+                                          if (getCommuteData(index, "avg_drive_time") != 0)
+                                            Icon(
+                                              Icons.drive_eta,
+                                              color: Colors.blue,
+                                              size: 30.0,
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                Expanded(
-                                  flex: 20,
-                                  child: Row(
-                                    children: [
-                                      if (getCommuteData(index, "avg_walk_time") != 0)
-                                        Icon(
-                                          Icons.directions_walk,
-                                          color: Colors.green,
-                                          size: 30.0,
-                                        ),
-                                      if (getCommuteData(index, "avg_drive_time") != 0)
-                                        Icon(
-                                          Icons.directions_bike,
-                                          color: Colors.black,
-                                          size: 30.0,
-                                        ),
-                                      if (getCommuteData(index, "avg_drive_time") != 0)
-                                        Icon(
-                                          Icons.drive_eta,
-                                          color: Colors.blue,
-                                          size: 30.0,
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ]
-                      ),
-                    ),
-                  );
-              },
-              separatorBuilder: (BuildContext context, int index) => const Divider(),
-          ),
-        )
-      ),
+                              ]
+                          ),
+                        ),
+                      );
+                    },
+                    separatorBuilder: (BuildContext context, int index) => const Divider(),
+                  ),
+                )
+            );
+          }
+        else if (!user_consent)
+          {
+            //display "Prominent disclosure" of application functionality upon first time app open.
+            return AlertDialog(
+              title: const Text('Disclosure'),
+              content: SingleChildScrollView(
+                child: ListBody(
+                  children: const <Widget>[
+                    Text('This application utilizes and collects precise location data to help you better understand and plan your commuting routes.'),
+                    Text('Your location is only tracked while the app is open and in the foreground.'),
+                    Text('\nAre you okay with allowing OnTime access to your location in this way?'),
+                  ],
+                ),
+              ),
+              actions: <Widget>[
+                Row(
+                  children: [
+                  TextButton(
+                  child: const Text('Approve'),
+                    onPressed: () {
+                      user_consent = true;
+                      storage.setItem("user_consent", true);
+                      setState(() {
+                      });
+                    },
+                  ),
+                  Expanded(
+                      child: Container()),
+                  ],
+                ),
+              ],
+            );
+          }
+        else{
+          return Center();
+        }
+      }())
+
+      //
       // floatingActionButton: FloatingActionButton(
       //   onPressed: () {
-      //     Navigator.push(
-      //       context,
-      //       MaterialPageRoute(builder: (context) => const MapSample()),
-      //     );
+      //     getUserConsent();
       //   },
       //   tooltip: 'Increment',
       //   child: const Icon(Icons.map),

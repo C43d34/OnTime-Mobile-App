@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:untitled/main.dart';
 import 'StorageFunctionality.dart';
@@ -32,8 +33,12 @@ class LocationServicer
   int cur_biking_seconds = 0;
   int cur_driving_seconds = 0;
 
+  LocationServicer() //default constructor
+  {
+  }
 
-  LocationServicer() { //default constructor
+  void initialize()
+  {
     //Handle initializing location and perms
     determineInitialPosition().then((Position? inital_pos)
     {
@@ -326,7 +331,6 @@ class LocationServicer
     this.cur_commute_end_pos = null;
     this.cur_commute_end_address = "";
   }
-
 }
 
 
